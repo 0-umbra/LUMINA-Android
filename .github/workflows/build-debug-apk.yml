@@ -46,7 +46,23 @@ jobs:
         uses: gradle/actions/wrapper-validation@v6
 
       - name: Validate Gradle configuration
-        run: ./gradlew help --stacktrace
+        shell: bash
+        run: |
+          log="$RUNNER_TEMP/gradle-help.log"
+          if ./gradlew help --stacktrace --console=plain 2>&1 | tee "$log"; then
+            exit 0
+          else
+            status=$?
+          fi
+
+          # Keep the full log and surface the Gradle error in the check annotation.
+          details="$(awk '/^\* What went wrong:$/{ show=1; next } /^\* Try:$/{ show=0 } show' "$log" | tail -c 4000)"
+          details="${details:-$(tail -c 4000 "$log")}"
+          details="${details//%/%25}"
+          details="${details//$'\r'/%0D}"
+          details="${details//$'\n'/%0A}"
+          printf '::error title=Gradle configuration failed::Exit status %s. %s\n' "$status" "$details"
+          exit "$status"
 
       - name: Build debug APK
         run: ./gradlew assembleDebug --stacktrace
