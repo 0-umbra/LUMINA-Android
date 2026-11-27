@@ -28,4 +28,14 @@
         android:layout_marginTop="16dp"
         android:text="@string/preview_wallpaper" />
 
+    <TextView
+        android:id="@+id/wallpaper_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:accessibilityLiveRegion="polite"
+        android:gravity="center"
+        android:textIsSelectable="true"
+        android:visibility="gone" />
+
 </LinearLayout>

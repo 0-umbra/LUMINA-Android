@@ -54,6 +54,29 @@ def only_child(node, name):
     return matches[0]
 
 
+def resource_id(resources, name):
+    match = re.search(rf"\bspec resource (0x[0-9a-f]+) {re.escape(PACKAGE + ':' + name)}:", resources)
+    require(match is not None, f"Resource {name} is not packaged")
+    return "@" + match[1]
+
+
+def method_block(class_dump, name):
+    declarations = list(re.finditer(r"(?m)^[ \t]+name\s*:\s*'([^']+)'", class_dump))
+    for index, declaration in enumerate(declarations):
+        if declaration[1] == name:
+            end = declarations[index + 1].start() if index + 1 < len(declarations) else len(class_dump)
+            return class_dump[declaration.end():end]
+    raise ValueError(f"Missing compiled method: {name}")
+
+
+def require_in_order(block, *tokens):
+    offset = 0
+    for token in tokens:
+        position = block.find(token, offset)
+        require(position != -1, f"Missing or out-of-order preview wiring: {token}")
+        offset = position + len(token)
+
+
 def verify(apk, build_tools):
     def dump(tool, *args):
         result = subprocess.run([build_tools / tool, *args], check=True, capture_output=True, text=True)
@@ -63,6 +86,7 @@ def verify(apk, build_tools):
     require(not any(line.lstrip().startswith("uses-permission") for line in permissions.splitlines()),
             f"APK requests permissions: {permissions.strip()}")
     manifest = xml_tree(dump("aapt", "dump", "xmltree", apk, "AndroidManifest.xml"))
+    require(has_string(manifest, "package", PACKAGE), "Wrong APK application ID for preview component")
     service = only_child(only_child(manifest, "application"), "service")
     require(has_string(service, "android:name", SERVICE), "Wrong wallpaper service class in manifest")
     require(service.attributes.get("android:exported") == "(type 0x12)0xffffffff", "Service is not exported")
@@ -74,12 +98,12 @@ def verify(apk, build_tools):
     metadata = only_child(service, "meta-data")
     require(has_string(metadata, "android:name", "android.service.wallpaper"), "Wrong wallpaper metadata key")
     resources = dump("aapt", "dump", "resources", apk)
-    resource = re.search(rf"\bspec resource (0x[0-9a-f]+) {re.escape(PACKAGE)}:xml/cosmic_wallpaper:", resources)
-    require(resource is not None and metadata.attributes.get("android:resource") == "@" + resource[1],
+    require(metadata.attributes.get("android:resource") == resource_id(resources, "xml/cosmic_wallpaper"),
             "Manifest does not point to the compiled cosmic wallpaper XML")
     wallpaper = xml_tree(dump("aapt", "dump", "xmltree", apk, "res/xml/cosmic_wallpaper.xml"))
-    require(wallpaper.name == "wallpaper" and wallpaper.attributes.get("android:description", "").startswith("@0x"),
-            "Invalid wallpaper metadata XML")
+    require(wallpaper.name == "wallpaper", "Invalid wallpaper metadata XML root")
+    require(wallpaper.attributes.get("android:description") == resource_id(resources, "string/wallpaper_description"),
+            "Wallpaper metadata does not reference the packaged description")
 
     dex = dump("dexdump", "-d", apk)
     classes = {
@@ -88,16 +112,26 @@ def verify(apk, build_tools):
         if (match := re.search(r"Class descriptor\s*:\s*'(L[^']+;)'", block))
     }
     service_descriptor = "L" + SERVICE.replace(".", "/") + ";"
-    require(re.search(r"Superclass\s*:\s*'Landroid/service/wallpaper/WallpaperService;'", classes.get(service_descriptor, "")),
+    service_class = classes.get(service_descriptor, "")
+    require(re.search(r"Superclass\s*:\s*'Landroid/service/wallpaper/WallpaperService;'", service_class),
             "APK service class does not extend WallpaperService")
+    require("CosmicEngine" in method_block(service_class, "onCreateEngine"), "Service does not create its wallpaper engine")
     activity_descriptor = "L" + PACKAGE.replace(".", "/") + "/MainActivity;"
     activity = classes.get(activity_descriptor, "")
-    for value in ("setOnClickListener", "openWallpaperPreview", "Landroid/content/ComponentName;",
-                  service_descriptor, "android.service.wallpaper.CHANGE_LIVE_WALLPAPER",
-                  "android.service.wallpaper.extra.LIVE_WALLPAPER_COMPONENT", "putExtra", "startActivity",
-                  "Landroid/content/ActivityNotFoundException;"):
-        require(value in activity, f"Missing preview wiring in compiled MainActivity: {value}")
-    print("Verified: no requested permissions, protected WallpaperService, compiled metadata, and preview intent wiring.")
+    require("setOnClickListener" in activity and "openWallpaperPreview" in activity, "Preview button is not wired")
+    preview = method_block(activity, "openWallpaperPreview")
+    require(re.search(r"const-class[^\n]*" + re.escape(service_descriptor), preview),
+            "Direct preview does not reference the service class declared in the manifest")
+    require_in_order(preview, "Landroid/content/ComponentName;",
+                     "android.service.wallpaper.CHANGE_LIVE_WALLPAPER",
+                     "android.service.wallpaper.extra.LIVE_WALLPAPER_COMPONENT", "putExtra",
+                     "launchWallpaperActivity", "android.service.wallpaper.LIVE_WALLPAPER_CHOOSER",
+                     "launchWallpaperActivity")
+    launch = method_block(activity, "launchWallpaperActivity")
+    for value in ("startActivity", "Landroid/content/ActivityNotFoundException;",
+                  "Ljava/lang/SecurityException;", "Landroid/util/Log;"):
+        require(value in launch, f"Missing wallpaper launch or diagnostics wiring: {value}")
+    print("Verified: no requested permissions, protected service and engine, compiled metadata, and preview/chooser wiring.")
 
 
 def main():

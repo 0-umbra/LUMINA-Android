@@ -4,8 +4,9 @@ LUMINA Cosmic is a static live wallpaper drawn with Android Canvas through the
 native `WallpaperService` API. Android owns the preview and confirmation screen;
 LUMINA does not draw an overlay or simulate wallpaper behavior in its launcher.
 
-**Current phase: 1B — one native static live wallpaper.** No animation, gallery,
-customization, or video playback yet.
+**Current phase: 1B.1 — Moto E13 compatibility investigation.** LUMINA Cosmic
+remains a static wallpaper. The product direction is video-first, with audio muted
+by default when video support is added; no video playback is implemented here.
 
 ## Build and download the debug APK
 
@@ -16,7 +17,7 @@ customization, or video playback yet.
 
 CI uses JDK 17, Gradle 8.9, AGP 8.7.3, Kotlin 2.0.21 and Android SDK/Build Tools
 35/35.0.0. It validates the wrapper and Gradle configuration, builds the APK,
-then checks the packaged manifest, wallpaper XML, service class, preview wiring,
+then checks the packaged manifest, wallpaper XML, service and engine, preview/chooser wiring,
 and absence of requested permissions before uploading. No secrets or paid
 services are required.
 
@@ -32,23 +33,32 @@ python3 scripts/verify_wallpaper_apk.py app/build/outputs/apk/debug/app-debug.ap
 1. Open the extracted APK and tap **Install**. If Android prompts you to allow
    installation from your file manager, you can revoke that allowance afterward.
    If updating from a differently signed debug APK, uninstall the old build first.
-2. Open **LUMINA** and tap **Preview Live Wallpaper**. Android's own wallpaper
-   preview should show a dark sky with soft blue and violet glows and faint stars.
-3. Use the system's **Set wallpaper** or **Apply** confirmation and choose a
-   destination if prompted. Return to the home screen and verify that the
-   wallpaper is visible behind the launcher icons.
-4. Open another app, lock/unlock the phone and return home. Check that the
-   wallpaper returns without a blank frame. If the preview isn't available,
-   check the system wallpaper picker for **LUMINA Cosmic**; exact menus and
-   live-wallpaper support depend on the device's system software.
+2. Open **LUMINA** and tap **Preview Live Wallpaper**. Note what appears:
+   - **Android's preview:** continue to Step 3.
+   - **Android's live wallpaper chooser:** select **LUMINA Cosmic**, then continue.
+     If it isn't listed, report that the chooser opened but the entry was missing.
+   - **A message in LUMINA:** share the exact direct preview and chooser outcomes
+     and the reported feature status. Also check whether **LUMINA Cosmic** is
+     available in the device's wallpaper settings.
+3. Use **Set wallpaper** or **Apply** in the system UI. Verify the cosmic sky is
+   visible behind the launcher icons and returns after locking and unlocking.
 
-CI checks the APK, not device behavior. The owner verifies preview and installation
-on the physical Moto E13.
+If ADB is already connected, capture only LUMINA's relevant logs after tapping:
+
+```bash
+adb logcat -d -s LuminaWallpaper:I CosmicWallpaper:W
+```
+
+LUMINA logs the target component, Android’s reported live wallpaper feature, and
+any exception from either launch. A feature flag or a successful launch request
+alone does not prove that the picker lists or can apply the wallpaper. CI checks
+APK integration, not physical-device behavior.
 
 ## Android implementation
 
 - App ID `com.lumina.wallpaper`; min SDK 23, compile/target SDK 35.
-- `MainActivity` launches the official preview intent with the service component.
+- `MainActivity` tries Android’s official component-specific preview intent, then
+  the official live wallpaper chooser if the first launch fails.
 - `CosmicWallpaperService` draws on the system-owned surface in lifecycle
   callbacks. It drops its renderer when the surface is destroyed, responds to
   system redraw requests and has no render loop or worker thread.
