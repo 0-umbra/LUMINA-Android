@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">LUMINA</string>
-    <string name="foundation_message">LUMINA\nPhase 1A — Android Project Foundation\n\nThis is a foundation build only.\nThe animated wallpaper will be added in a later phase.</string>
+    <string name="wallpaper_name">LUMINA Cosmic</string>
+    <string name="wallpaper_description">A still night sky with soft blue and violet light.</string>
+    <string name="preview_wallpaper">Preview Live Wallpaper</string>
+    <string name="preview_unavailable">Android could not open a live wallpaper screen. If your device’s wallpaper settings list LUMINA Cosmic, you can apply it there.\n\nDirect preview: %1$s. Live wallpaper chooser: %2$s. %3$s.</string>
+    <string name="wallpaper_launch_no_handler">no activity available</string>
+    <string name="wallpaper_launch_denied">Android denied the launch</string>
+    <string name="wallpaper_feature_reported">Android reports the live wallpaper feature</string>
+    <string name="wallpaper_feature_not_reported">Android does not report the live wallpaper feature</string>
 </resources>
