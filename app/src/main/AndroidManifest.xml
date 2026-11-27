@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+        LUMINA — Phase 1A foundation manifest.
+        Intentionally declares NO permissions:
+        - No INTERNET (offline-first)
+        - No dangerous permissions
+        - No BIND_WALLPAPER_SERVICE yet (Phase 1B)
+    -->
+
+    <application
+        android:allowBackup="false"
+        android:icon="@android:drawable/sym_def_app_icon"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Lumina">
+
+        <!--
+            Foundation launcher activity only.
+            This is NOT the wallpaper engine. It exists so the Phase 1A
+            APK can be installed and launched on the Moto E13 to verify
+            the build. WallpaperService will be added in Phase 1B.
+        -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+    </application>
+
+</manifest>

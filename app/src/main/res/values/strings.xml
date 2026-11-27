@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">LUMINA</string>
+    <string name="foundation_message">LUMINA\nPhase 1A — Android Project Foundation\n\nThis is a foundation build only.\nThe animated wallpaper will be added in a later phase.</string>
+</resources>
