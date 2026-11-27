@@ -1,147 +1,61 @@
 # LUMINA — Android Live Wallpaper
 
-LUMINA is a native Android project in Kotlin. A later phase will add live
-wallpapers through Android's official `WallpaperService` API.
+LUMINA Cosmic is a static live wallpaper drawn with Android Canvas through the
+native `WallpaperService` API. Android owns the preview and confirmation screen;
+LUMINA does not draw an overlay or simulate wallpaper behavior in its launcher.
 
-**Current phase: 1A — Android Project Foundation only.**
+**Current phase: 1B — one native static live wallpaper.** No animation, gallery,
+customization, or video playback yet.
 
-This phase establishes a genuine, buildable Android project. It does **not**
-yet implement the animated wallpaper, video playback, wallpaper preview, or
-gallery. Those are future phases.
+## Build and download the debug APK
 
----
+1. Push a feature branch or open a pull request targeting `develop`.
+2. In **Actions**, open the successful **Build Debug APK** run for the change.
+3. Sign in to GitHub, download the **`lumina-debug-apk`** artifact ZIP, and
+   extract `app-debug.apk`. Artifacts are retained for 30 days.
 
-## What Phase 1A includes
+CI uses JDK 17, Gradle 8.9, AGP 8.7.3, Kotlin 2.0.21 and Android SDK/Build Tools
+35/35.0.0. It validates the wrapper and Gradle configuration, builds the APK,
+then checks the packaged manifest, wallpaper XML, service class, preview wiring,
+and absence of requested permissions before uploading. No secrets or paid
+services are required.
 
-- Native Android project in Kotlin
-- Gradle with the official Android Gradle Plugin (AGP)
-- Stable Gradle / JDK combination
-- Correct Android manifest and package structure
-- GitHub Actions workflow that builds a debug APK automatically
-- No paid APIs, no paid dependencies, no secrets, no internet permission
-
-## Project configuration
-
-| Setting | Value |
-|---|---|
-| Application ID | `com.lumina.wallpaper` |
-| Application name | LUMINA |
-| Language | Kotlin |
-| Min SDK | 23 (Android 6.0) |
-| Target SDK | 35 |
-| Compile SDK | 35 |
-| Gradle | 8.9 |
-| Android Gradle Plugin | 8.7.3 |
-| Kotlin | 2.0.21 |
-| JDK | 17 (Temurin) |
-| App libraries | Kotlin standard library; UI uses the Android framework |
-| Android Build Tools | 35.0.0 |
-
-The minimum SDK of 23 keeps the app installable on Android 6.0 and later,
-including the Moto E13 running Android 13 (API 33).
-
-## Package structure
-
-```text
-app/src/main/java/com/lumina/wallpaper/
-└── MainActivity.kt          # Foundation launcher activity (not a wallpaper)
-
-app/src/main/
-├── AndroidManifest.xml      # No permissions, no wallpaper service yet
-└── res/
-    ├── layout/activity_main.xml
-    └── values/strings.xml, themes.xml
-```
-
-Future components are **not** implemented in Phase 1A:
-
-- `WallpaperService` implementation
-- Canvas-based animation renderer
-- Native wallpaper preview
-- Built-in wallpaper gallery
-- Local video wallpaper playback
-
-## How to build the APK (GitHub Actions — recommended)
-
-LUMINA is developed entirely from an Android phone (GitHub + Termux + AI
-agents). There is no PC or laptop, so APK builds happen in GitHub Actions.
-No secrets, API keys, Firebase, Cloudflare, or paid services are required.
-
-1. Push to a feature branch (for example `feature/**`) or open a pull
-   request targeting `develop`.
-2. Open the **Actions** tab in GitHub and watch the
-   **Build Debug APK** workflow run.
-3. When it finishes, open the completed run and download the
-   **`lumina-debug-apk`** artifact.
-4. The artifact contains `app-debug.apk`.
-
-The workflow:
-
-- Runs on pushes to feature branches and pull requests targeting `develop`
-- Sets up JDK 17 (Temurin) and the Android SDK
-- Validates the Gradle wrapper and Gradle configuration (`./gradlew help`)
-- Builds the debug APK (`./gradlew assembleDebug`) and checks that it requests no permissions
-- Uploads the APK as a downloadable artifact
-
-## How to install the APK on the Moto E13
-
-1. Sign in to GitHub, download the `lumina-debug-apk` artifact ZIP, and
-   extract `app-debug.apk` using the phone's file manager.
-2. On the phone, allow installation from the browser / file manager if
-   prompted (Settings → Security → Install unknown apps).
-3. Open the APK and tap **Install**.
-4. Open **LUMINA** from the app drawer. In Phase 1A you should see a simple
-   foundation screen:
-
-   > LUMINA
-   > Phase 1A — Android Project Foundation
-   >
-   > This is a foundation build only.
-   > The animated wallpaper will be added in a later phase.
-
-This confirms the build installs and launches. It is **not** a wallpaper yet.
-
-## How to build locally (optional — if you ever have a PC)
-
-Prerequisites: JDK 17, Android SDK platform 35 and Build Tools 35.0.0.
+Optional local build with JDK 17 and the same Android SDK packages:
 
 ```bash
 ./gradlew assembleDebug
+python3 scripts/verify_wallpaper_apk.py app/build/outputs/apk/debug/app-debug.apk "$ANDROID_HOME/build-tools/35.0.0"
 ```
 
-The APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
+## Install and verify on the Moto E13 (Android 13)
 
-## Branching
+1. Open the extracted APK and tap **Install**. If Android prompts you to allow
+   installation from your file manager, you can revoke that allowance afterward.
+   If updating from a differently signed debug APK, uninstall the old build first.
+2. Open **LUMINA** and tap **Preview Live Wallpaper**. Android's own wallpaper
+   preview should show a dark sky with soft blue and violet glows and faint stars.
+3. Use the system's **Set wallpaper** or **Apply** confirmation and choose a
+   destination if prompted. Return to the home screen and verify that the
+   wallpaper is visible behind the launcher icons.
+4. Open another app, lock/unlock the phone and return home. Check that the
+   wallpaper returns without a blank frame. If the preview isn't available,
+   check the system wallpaper picker for **LUMINA Cosmic**; exact menus and
+   live-wallpaper support depend on the device's system software.
 
-- `main` — stable releases only. Never push directly.
-- `develop` — integration branch. Feature PRs target `develop`.
-- `feature/*` and `arena/*` — feature branches branched from `develop`.
+CI checks the APK, not device behavior. The owner verifies preview and installation
+on the physical Moto E13.
 
-Never merge pull requests without owner approval. Phase 1A stops for owner
-approval before Phase 1B begins.
+## Android implementation
 
-## Permissions and privacy
+- App ID `com.lumina.wallpaper`; min SDK 23, compile/target SDK 35.
+- `MainActivity` launches the official preview intent with the service component.
+- `CosmicWallpaperService` draws on the system-owned surface in lifecycle
+  callbacks. It drops its renderer when the surface is destroyed, responds to
+  system redraw requests and has no render loop or worker thread.
+- `CosmicRenderer` uses two simple gradients and a small deterministic star field
+  without bitmap assets, network access, or new libraries.
+- The exported service is protected by `android.permission.BIND_WALLPAPER`.
+  The app does not request this permission or any other app permission.
 
-Phase 1A declares **no permissions** in the manifest:
-
-- No `INTERNET`
-- No dangerous permissions
-- No root, no bootloader changes, no overlays, no floating windows
-
-The app is offline-first and lightweight.
-
-## Known limitations (Phase 1A)
-
-- No `WallpaperService` yet — LUMINA does not appear in the system wallpaper
-  picker in this phase.
-- No animation, video, preview, or gallery.
-- Uses the system launcher icon (`@android:drawable/sym_def_app_icon`).
-  A custom LUMINA icon will be added in a later phase.
-- Physical-device testing is done by the owner on the Moto E13 after
-  downloading the CI-built APK. CI does not run on a physical device.
-
-## Roadmap (future phases — not in 1A)
-
-- **Phase 1B:** First genuine animated wallpaper via `WallpaperService`
-  + Canvas renderer, verified on the Moto E13 (Android 13).
-- Later: native wallpaper preview, built-in gallery, local video playback.
+Development changes go through feature branches and PRs targeting `develop`.
+Do not push directly to `develop` or `main` or merge without owner approval.

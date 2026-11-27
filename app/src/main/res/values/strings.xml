@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">LUMINA</string>
-    <string name="foundation_message">LUMINA\nPhase 1A — Android Project Foundation\n\nThis is a foundation build only.\nThe animated wallpaper will be added in a later phase.</string>
+    <string name="wallpaper_name">LUMINA Cosmic</string>
+    <string name="wallpaper_description">A still night sky with soft blue and violet light.</string>
+    <string name="preview_wallpaper">Preview Live Wallpaper</string>
+    <string name="preview_unavailable">Live wallpaper preview is unavailable. Look for LUMINA Cosmic in your device’s wallpaper picker.</string>
 </resources>
